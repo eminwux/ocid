@@ -28,6 +28,7 @@ func init() {
 
 	GrantCmd.AddCommand(passwordCmd)
 	GrantCmd.AddCommand(clientCredentialsCmd)
+	GrantCmd.AddCommand(clientAssertionJWTCmd)
 	GrantCmd.AddCommand(authorizationCodeCmd)
 	// Here you will define your flags and configuration settings.
 

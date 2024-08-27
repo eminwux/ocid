@@ -9,6 +9,7 @@
   - Authorization Code Grant
   - Client Credentials Grant
   - Resource Owner Password Credentials (ROPC) Grant
+  - Client Assertion JWT Grant
 - **PKCE Support**: Built-in support for Proof Key for Code Exchange (PKCE) for enhanced security during authorization flows.
 
 ## Installation
@@ -32,7 +33,7 @@ Without PKCE:
 
 ```bash
 ocid grant authorization_code \
-  --url https://your-authorization-server.com \
+  --url https://your-oidc-issuer.com \
   --client_id your-client-id \
   --client_secret your-client-secret \
   --scope your-scope \
@@ -43,18 +44,23 @@ ocid grant authorization_code \
 With PKCE:
 ```bash
 ocid grant authorization_code \
-  --url https://your-authorization-server.com \
+  --url https://your-oidc-issuer.com \
   --client_id your-client-id \
   --client_secret your-client-secret \
   --scope your-scope \
 ```
+
+PKCE (for Authorization Code Grant)
+`--pkce`: Enable PKCE.
+`--pkce-challenge-method`: Specify the PKCE challenge method (plain or S256, default is plain).
+
 
 ### Client Credentials Grant
 `ocid grant client_credentials`: Executes the Client Credentials Grant flow.
 
 ```bash
 ocid grant client_credentials \
-  --url https://your-authorization-server.com \
+  --url https://your-oidc-issuer.com \
   --client_id your-client-id \
   --client_secret your-client-secret \
   --scope your-scope
@@ -65,25 +71,32 @@ ocid grant client_credentials \
 
 ```bash
 ocid grant password \
-  --url https://your-authorization-server.com \
+  --url https://your-oidc-issuer.com \
   --username your-username \
   --password your-password \
   --client_id your-client-id \
   --client_secret your-client-secret \
   --scope your-scope
 ```
+### Client Assertion JWT Grant
+`ocid grant client_assertion_jwt`: Executes the Client Assertion JWT Grant flow.
 
+This flow is used in scenarios where a client authenticates using a JSON Web Token (JWT) instead of a client secret. This is typically used by confidential clients such as microservices.
+
+```bash
+ocid grant client_assertion_jwt \
+  --url https://your-oidc-issuer.com \
+  --client_id your-client-id \
+  --client_assertion_jwt your-signed-jwt \
+  --scope your-scope
+```
 ## Command-Specific Flags
 Each grant type command has specific flags that need to be provided:
 
-`--url`: The authorization server URL (required).
+`--url`: The OIDC issuer server URL (required).
 `--client_id`: The client ID (required).
 `--client_secret`: The client secret (required for some flows).
 `--scope`: The scope of the access request (required).
-
-PKCE (for Authorization Code Grant)
-`--pkce`: Enable PKCE.
-`--pkce-challenge-method`: Specify the PKCE challenge method (plain or S256, default is plain).
 
 ## License
 
