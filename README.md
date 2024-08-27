@@ -26,6 +26,10 @@ This will make the ocid command available globally on your system.
 The ocid CLI is designed to be simple and intuitive. Below are some examples of how to use the tool.
 
 ### Authorization Code Grant
+`ocid grant authorization_code`: Executes the Authorization Code Grant flow.
+
+Without PKCE:
+
 ```bash
 ocid grant authorization_code \
   --url https://your-authorization-server.com \
@@ -36,7 +40,18 @@ ocid grant authorization_code \
   --pkce-challenge-method S256
 ```
 
+With PKCE:
+```bash
+ocid grant authorization_code \
+  --url https://your-authorization-server.com \
+  --client_id your-client-id \
+  --client_secret your-client-secret \
+  --scope your-scope \
+```
+
 ### Client Credentials Grant
+`ocid grant client_credentials`: Executes the Client Credentials Grant flow.
+
 ```bash
 ocid grant client_credentials \
   --url https://your-authorization-server.com \
@@ -46,6 +61,8 @@ ocid grant client_credentials \
 ```
 
 ### Resource Owner Password Credentials (ROPC) Grant
+`ocid grant password`: Executes the Resource Owner Password Credentials (ROPC) Grant flow.
+
 ```bash
 ocid grant password \
   --url https://your-authorization-server.com \
@@ -56,16 +73,7 @@ ocid grant password \
   --scope your-scope
 ```
 
-## Commands
-`ocid grant authorization_code`: Executes the Authorization Code Grant flow.
-`ocid grant client_credentials`: Executes the Client Credentials Grant flow.
-`ocid grant password`: Executes the Resource Owner Password Credentials (ROPC) Grant flow.
-Each command has its own set of required and optional flags to customize the authentication flow.
-
-Global Flags
-`--toggle`: Example global flag, provides additional toggle functionality.
-
-Command-Specific Flags
+## Command-Specific Flags
 Each grant type command has specific flags that need to be provided:
 
 `--url`: The authorization server URL (required).
