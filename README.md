@@ -106,4 +106,4 @@ This project is licensed under the MIT License.
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
 
 ## Contact
-For any questions or support, please contact [eminwux@gmail.com].
+For any questions or support, please contact [eminwux at famous-google-mail-service].
