@@ -99,17 +99,17 @@ func (i *JWTDecodeCmdInput) run() {
 		return
 	}
 
-	prettyHeaderJSON, err := json.MarshalIndent(&jwt.Header, "", "    ")
-	if err != nil {
-		fmt.Printf("failed to marshal header: %w", err)
-	}
-
 	prettyPayloadJSON, err := json.MarshalIndent(&jwt.Payload, "", "    ")
 	if err != nil {
-		fmt.Printf("failed to marshal header: %w", err)
+		fmt.Printf("failed to marshal header: %v", err)
 	}
 
 	if i.showHeader {
+		prettyHeaderJSON, err := json.MarshalIndent(&jwt.Header, "", "    ")
+		if err != nil {
+			fmt.Printf("failed to marshal header: %v", err)
+			return
+		}
 		fmt.Println(string(prettyHeaderJSON))
 	}
 	fmt.Println(string(prettyPayloadJSON))
