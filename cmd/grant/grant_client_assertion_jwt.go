@@ -1,6 +1,31 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2024 Emiliano Spinella (eminwux)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 package grant
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/eminwux/ocid/pkg/oauth2"
@@ -15,6 +40,7 @@ type ClientAssertionCmdInput struct {
 	clientId           string
 	clientAssertionJWT string
 	scope              string
+	verbose            bool
 }
 
 var clientAssertionCmdInput ClientAssertionCmdInput
@@ -37,23 +63,11 @@ Examples of usage:
 2. To use in scripts or automation:
    ./your-cli client_assertion_jwt -c your-client-id -j your-jwt -o your-scope --url https://example.com/`,
 	Run: func(cmd *cobra.Command, args []string) {
-
-		fmt.Printf("-- Starting OAuth Client Assertion JWT Grant\n")
-
-		// Display input parameters for clarity
-		fmt.Printf("\nParameters: \n")
-		fmt.Printf("\turl: %s\n", clientAssertionCmdInput.url)
-		fmt.Printf("\tclient_id: %s\n", clientAssertionCmdInput.clientId)
-		fmt.Printf("\tclient_assertion: %s\n", clientAssertionCmdInput.clientAssertionJWT)
-		fmt.Printf("\tscope: %s\n\n", clientAssertionCmdInput.scope)
-
-		// Execute the grant request
 		clientAssertionCmdInput.run()
-
-		fmt.Printf("-- Finished OAuth Client Assertion JWT Grant\n")
 	},
 }
 
+// init sets up the command and flags.
 func init() {
 
 	// Register the command and its flags
@@ -61,6 +75,7 @@ func init() {
 	clientAssertionJWTCmd.Flags().StringVarP(&clientAssertionCmdInput.clientId, "client_id", "c", "", "Client ID for authentication (required)")
 	clientAssertionJWTCmd.Flags().StringVarP(&clientAssertionCmdInput.clientAssertionJWT, "client_assertion_jwt", "j", "", "JWT used for client assertion (required)")
 	clientAssertionJWTCmd.Flags().StringVarP(&clientAssertionCmdInput.scope, "scope", "o", "", "Scope of the access request (required)")
+	clientAssertionJWTCmd.Flags().BoolVarP(&clientAssertionCmdInput.verbose, "verbose", "v", false, "Enable verbose")
 
 	// Mark certain flags as required
 	clientAssertionJWTCmd.MarkFlagRequired("url")
@@ -72,25 +87,33 @@ func init() {
 func (i *ClientAssertionCmdInput) run() {
 
 	// Construct the grant request
-	grantRequest := oauth2.GrantTypeClientAssertionJWT{
+	grantRequest := oauth2.GrantTypeClientAssertionJWTRequest{
 		ClientID:           i.clientId,
 		ClientAssertionJWT: i.clientAssertionJWT,
 		Scope:              i.scope,
 	}
 
 	// Discover the token endpoint from the provided URL
-	tokenEndpoint, err := oidc.DiscoverTokenEndpoint(i.url)
+	tokenEndpoint, err := oidc.DiscoverTokenEndpoint(i.url, i.verbose)
 	if err != nil {
 		fmt.Println("Error discovering token endpoint:", err)
 		return
 	}
 
 	// Attempt to obtain the access token using the client assertion JWT grant
-	_, err = oauth2.GrantClientAssertionJWT(&grantRequest, tokenEndpoint)
+	response, err := oauth2.GrantClientAssertionJWT(&grantRequest, tokenEndpoint, i.verbose)
 	if err != nil {
 		fmt.Println("Error obtaining access token:", err)
 		return
 	}
 
-	fmt.Println("Access token obtained successfully.")
+	// Marshal the struct to JSON with indentation
+	prettyJSON, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		fmt.Println("Failed to generate pretty JSON:", err)
+		return
+	}
+
+	// Print the pretty JSON
+	fmt.Println(string(prettyJSON))
 }

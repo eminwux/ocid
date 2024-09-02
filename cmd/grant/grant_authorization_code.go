@@ -1,6 +1,31 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2024 Emiliano Spinella (eminwux)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 package grant
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -10,6 +35,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// AuthorizationCodeCmdInput holds the necessary parameters for authorization code grant.
 type AuthorizationCodeCmdInput struct {
 	url          string
 	clientId     string
@@ -17,6 +43,7 @@ type AuthorizationCodeCmdInput struct {
 	scope        string
 	pkce         bool
 	pkceMethod   string
+	verbose      bool
 }
 
 var authorizationCodeCmdInput AuthorizationCodeCmdInput
@@ -24,27 +51,19 @@ var authorizationCodeCmdInput AuthorizationCodeCmdInput
 // authorizationCodeCmd represents the password command
 var authorizationCodeCmd = &cobra.Command{
 	Use:   "authorization_code",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Authenticate using the authorization code grant",
+	Long: `Authenticate using the OAuth 2.0 Authorization Code Grant with optional PKCE.
+This command initiates the flow where the client first redirects a user to an authorization server,
+then the user logs in, and finally the client receives an authorization code that is used to get an access token.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Example:
+  ./ocid authorization_code --url http://example.com --client_id yourClientID --client_secret yourClientSecret --scope openid --pkce --pkce-challenge-method S256`,
 	Run: func(cmd *cobra.Command, args []string) {
-
-		fmt.Printf("-- Starting OAuth Client Credentials Grant\n")
-
-		fmt.Printf("\nParameters: \n")
-		fmt.Printf("\turl: %s\n", authorizationCodeCmdInput.url)
-		fmt.Printf("\tclient_id: %s\n", authorizationCodeCmdInput.clientId)
-		fmt.Printf("\tclient_secret: %s\n", authorizationCodeCmdInput.clientSecret)
-		fmt.Printf("\tscope: %s\n\n", authorizationCodeCmdInput.scope)
 
 		if authorizationCodeCmdInput.pkce {
 			switch authorizationCodeCmdInput.pkceMethod {
 			case "plain", "S256":
-				fmt.Printf("PKCE Method used: %s\n", authorizationCodeCmdInput.pkceMethod)
+				break
 			default:
 				fmt.Printf("Invalid PKCE method: %s\n", authorizationCodeCmdInput.pkceMethod)
 				cmd.Usage()
@@ -54,39 +73,42 @@ to quickly create a Cobra application.`,
 
 		authorizationCodeCmdInput.run()
 
-		fmt.Printf("-- Finished OAuth Client Credentials Grant\n")
-
 	},
 }
 
+// init sets up the command and flags.
 func init() {
-
-	// cmd.RootCmd.AddCommand(authoricationCmd)
-
 	authorizationCodeCmd.Flags().StringVarP(&authorizationCodeCmdInput.url, "url", "", "", "Url (required)")
 	authorizationCodeCmd.Flags().StringVarP(&authorizationCodeCmdInput.clientId, "client_id", "c", "", "Client ID (required)")
 	authorizationCodeCmd.Flags().StringVarP(&authorizationCodeCmdInput.clientSecret, "client_secret", "s", "", "Client Secret (required)")
 	authorizationCodeCmd.Flags().StringVarP(&authorizationCodeCmdInput.scope, "scope", "o", "", "Scope (required)")
+	authorizationCodeCmd.Flags().BoolVarP(&authorizationCodeCmdInput.verbose, "verbose", "v", false, "Enable verbose")
 
 	authorizationCodeCmd.Flags().BoolVarP(&authorizationCodeCmdInput.pkce, "pkce", "", false, "Enable PKCE")
 	authorizationCodeCmd.Flags().StringVarP(&authorizationCodeCmdInput.pkceMethod, "pkce-challenge-method", "", "plain", "Used together with --pkce to define challenge method (plain [default], S256)")
 
-	// Mark flags as required
-	authorizationCodeCmd.MarkFlagRequired("url")
-	authorizationCodeCmd.MarkFlagRequired("client_id")
-	authorizationCodeCmd.MarkFlagRequired("scope")
+	requiredFlags := []string{"url", "client_id", "scope"}
+	for _, flag := range requiredFlags {
+		authorizationCodeCmd.MarkFlagRequired(flag)
+	}
 }
 
 func (i *AuthorizationCodeCmdInput) run() {
 
-	authorizationEndpoint, err := oidc.DiscoverAuthenticationEndpoint(i.url)
+	// Discover endpoints from the authorization server
+	authorizationEndpoint, err := oidc.DiscoverAuthenticationEndpoint(i.url, i.verbose)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("failed to discover authentication endpoint: ", err)
+		return
+
 	}
-	tokenEndpoint, err := oidc.DiscoverTokenEndpoint(i.url)
+	tokenEndpoint, err := oidc.DiscoverTokenEndpoint(i.url, i.verbose)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("failed to discover token endpoint: %w", err)
+		return
 	}
+
+	var response interface{}
 
 	if i.pkce {
 
@@ -96,7 +118,7 @@ func (i *AuthorizationCodeCmdInput) run() {
 			CodeChallengeMethod: i.pkceMethod,
 		}
 
-		_, err = oauth2.GrantAuthorizationCodePKCE(&grantRequest, authorizationEndpoint, tokenEndpoint)
+		response, err = oauth2.GrantAuthorizationCodePKCE(&grantRequest, authorizationEndpoint, tokenEndpoint, i.verbose)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -108,11 +130,20 @@ func (i *AuthorizationCodeCmdInput) run() {
 			Scope:    i.scope,
 		}
 
-		_, err = oauth2.GrantAuthorizationCode(&grantRequest, authorizationEndpoint, tokenEndpoint)
+		response, err = oauth2.GrantAuthorizationCode(&grantRequest, authorizationEndpoint, tokenEndpoint, i.verbose)
 		if err != nil {
 			fmt.Println(err)
 		}
 
 	}
 
+	// Marshal the struct to JSON with indentation
+	prettyJSON, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		fmt.Println("Failed to generate pretty JSON:", err)
+		return
+	}
+
+	// Print the pretty JSON
+	fmt.Println(string(prettyJSON))
 }

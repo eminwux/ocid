@@ -1,3 +1,27 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2024 Emiliano Spinella (eminwux)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 package oidc
 
 import (
@@ -5,6 +29,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/eminwux/ocid/pkg/logger"
 )
 
 // OIDCConfig represents the necessary fields from the OIDC discovery document
@@ -44,8 +70,8 @@ func RetrieveOIDCConfiguration(issuerURL string) (*OIDCConfig, error) {
 }
 
 // DiscoverTokenEndpoint discovers the token endpoint from the OIDC provider's configuration
-func DiscoverTokenEndpoint(issuerURL string) (string, error) {
-	fmt.Printf("oidclib - starting discovering OIDC token endpoint for %s\n", issuerURL)
+func DiscoverTokenEndpoint(issuerURL string, verbose bool) (string, error) {
+	logger.Verbose(verbose, "starting discovering OIDC token endpoint for %s\n", issuerURL)
 
 	config, _ := RetrieveOIDCConfiguration(issuerURL)
 
@@ -53,15 +79,15 @@ func DiscoverTokenEndpoint(issuerURL string) (string, error) {
 	if config.TokenEndpoint == "" {
 		return "", fmt.Errorf("token endpoint not found in OIDC configuration")
 	}
-	fmt.Printf("oidclib - OIDC token endpoint discovered: %s\n", config.TokenEndpoint)
+	logger.Verbose(verbose, "OIDC token endpoint discovered: %s\n", config.TokenEndpoint)
 
-	fmt.Printf("oidclib - finished discovering OIDC token endpoint for %s\n", issuerURL)
+	logger.Verbose(verbose, "finished discovering OIDC token endpoint for %s\n", issuerURL)
 	return config.TokenEndpoint, nil
 }
 
 // DiscoverTokenEndpoint discovers the token endpoint from the OIDC provider's configuration
-func DiscoverAuthenticationEndpoint(issuerURL string) (string, error) {
-	fmt.Printf("oidclib - starting discovering OIDC authentication endpoint for %s\n", issuerURL)
+func DiscoverAuthenticationEndpoint(issuerURL string, verbose bool) (string, error) {
+	logger.Verbose(verbose, "starting discovering OIDC authentication endpoint for %s\n", issuerURL)
 
 	config, _ := RetrieveOIDCConfiguration(issuerURL)
 
@@ -69,8 +95,8 @@ func DiscoverAuthenticationEndpoint(issuerURL string) (string, error) {
 	if config.AuthorizationEndpoint == "" {
 		return "", fmt.Errorf("authentication endpoint not found in OIDC configuration")
 	}
-	fmt.Printf("oidclib - OIDC authentication endpoint discovered: %s\n", config.AuthorizationEndpoint)
+	logger.Verbose(verbose, "OIDC authentication endpoint discovered: %s\n", config.AuthorizationEndpoint)
 
-	fmt.Printf("oidclib - finished discovering OIDC authentication endpoint for %s\n", issuerURL)
+	logger.Verbose(verbose, "finished discovering OIDC authentication endpoint for %s\n", issuerURL)
 	return config.AuthorizationEndpoint, nil
 }

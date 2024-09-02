@@ -1,3 +1,27 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2024 Emiliano Spinella (eminwux)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 package jwt
 
 import (
@@ -13,6 +37,12 @@ import (
 	"strings"
 )
 
+type JWT struct {
+	Header    map[string]interface{}
+	Payload   map[string]interface{}
+	Signature []byte
+}
+
 // decodeBase64 decodes a Base64 URL encoded string.
 func decodeBase64(str string) ([]byte, error) {
 	// Add padding as required
@@ -23,59 +53,62 @@ func decodeBase64(str string) ([]byte, error) {
 }
 
 // decodeJWT decodes the header and payload of a JWT without validating its signature.
-func DecodeJWT(token string) (headerJSON string, payloadJSON string, signature []byte, err error) {
+func DecodeJWT(token string) (*JWT, error) {
+	var jwt JWT
+
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		return "", "", nil, fmt.Errorf("invalid token, expected 3 parts got %d", len(parts))
+		return nil, fmt.Errorf("invalid token, expected 3 parts got %d", len(parts))
 	}
 
 	// Decode HEADER
 	headerBytes, err := decodeBase64(parts[0])
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to decode header: %w", err)
+		return nil, fmt.Errorf("failed to decode header: %w", err)
 	}
-	var headerMap map[string]interface{}
-	if err = json.Unmarshal(headerBytes, &headerMap); err != nil {
-		return "", "", nil, fmt.Errorf("failed to unmarshal header: %w", err)
+	// var headerMap map[string]interface{}
+
+	if err = json.Unmarshal(headerBytes, &jwt.Header); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal header: %w", err)
 	}
 
-	prettyHeaderJSON, err := json.MarshalIndent(headerMap, "", "    ")
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to marshal header: %w", err)
+	// prettyHeaderJSON, err := json.MarshalIndent(&jwt.Header, "", "    ")
+	// if err != nil {
+	// 	return "", "", nil, fmt.Errorf("failed to marshal header: %w", err)
 
-	}
-	headerJSON = string(prettyHeaderJSON)
-	fmt.Println("JWT Header:")
-	fmt.Println(headerJSON)
+	// }
+	// headerJSON = string(prettyHeaderJSON)
+	// fmt.Println("JWT Header:")
+	// fmt.Println(headerJSON)
 
 	// Decode PAYLOAD
 	payloadBytes, err := decodeBase64(parts[1])
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to decode payload: %w", err)
+		return nil, fmt.Errorf("failed to decode payload: %w", err)
 	}
 
-	var payloadMap map[string]interface{}
-	if err = json.Unmarshal(payloadBytes, &payloadMap); err != nil {
-		return "", "", nil, fmt.Errorf("failed to unmarshal header: %w", err)
+	// var payloadMap map[string]interface{}
+	if err = json.Unmarshal(payloadBytes, &jwt.Payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal header: %w", err)
 	}
 
-	prettyPayloadJSON, err := json.MarshalIndent(payloadMap, "", "    ")
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to marshal payload: %w", err)
+	// prettyPayloadJSON, err := json.MarshalIndent(&jwt.Payload, "", "    ")
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to marshal payload: %w", err)
 
-	}
-	payloadJSON = string(prettyPayloadJSON)
-	fmt.Println("JWT Payload:")
-	fmt.Println(payloadJSON)
+	// }
+	// payloadJSON = string(prettyPayloadJSON)
+	// fmt.Println("JWT Payload:")
+	// fmt.Println(payloadJSON)
 
 	// Extract signature
-	signatureBytes, err := decodeBase64(parts[2])
+	jwt.Signature, err = decodeBase64(parts[2])
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to decode signature: %w", err)
+		return nil, fmt.Errorf("failed to decode signature: %w", err)
 	}
-	fmt.Println("Signature Bytes:", signatureBytes)
+	// fmt.Println("Signature Bytes:", signatureBytes)
 
-	return string(headerBytes), string(payloadBytes), signatureBytes, nil
+	return &jwt, nil
 }
 
 // verifySignatureRS256 checks if the provided JWT signature is valid using RS256 and a given RSA public key
